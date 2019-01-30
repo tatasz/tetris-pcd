@@ -1,7 +1,6 @@
 /*
 COISAS PARA CORRIGIR
-1. Quando a peça está quase assentada, podemos mexer ela. Desabilitar rotação uma vez que dá splat?.
-3. Ajustar o amostrador de peças. No momento, gera um número aleatório, porém depois vou querer as 
+1. Ajustar o amostrador de peças. No momento, gera um número aleatório, porém depois vou querer as 
   peças básicas mais alguma das peças bizarras, seguindo alguma lógica
 */
 

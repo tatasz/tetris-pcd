@@ -11,6 +11,8 @@ class TetrisGame{
   int clearedLines;
   // timer
   Timer timer;
+  // timer para eventos especiais
+  Timer eventTimer;
   // começa com peça nova
   boolean spawn = true;
   // ID peça atual
@@ -29,6 +31,8 @@ class TetrisGame{
   boolean nextLevel;
   //linhas bonus = número de linhas vazias quando atinge o objetivo
   int bonusRows;
+  //level 
+  TetrisLevel currentLevel;
   
   // cria um jogo
   TetrisGame(int x, int y, int l) {
@@ -45,15 +49,21 @@ class TetrisGame{
     restart = false;
     gameOver = false;
     nextLevel = false;
+    currentLevel = setLevel(level);
     bonusRows = 0;
     clearedLines = 0;
     grid = makeState(nx, ny, level);
     timer = new Timer();
-    timer.reset(600 - levels[level].speed);
+    timer.reset(600 - currentLevel.speed);
+    eventTimer = new Timer();
+    eventTimer.reset(currentLevel.eventSpeed * 100);
     currentShapeID = nextShapeID;
     nextShapeID = floor(random(7)) + 1;
     currentShape = new TetrisShape(currentShapeID);
+    
     timer.setTime();
+    eventTimer.setTime();
+    
   }
   
   //display
@@ -84,7 +94,7 @@ class TetrisGame{
     text("goal", blocksize * (nx + 2), blocksize * 7); 
     fill(200);
     textSize(20);
-    text(str(levels[level].goalLines), blocksize * (nx + 2), blocksize * 8); 
+    text(str(currentLevel.goalLines), blocksize * (nx + 2), blocksize * 8); 
     fill(120);
     textSize(15);
     text("cleared", blocksize * (nx + 2), blocksize * 10); 
@@ -118,6 +128,17 @@ class TetrisGame{
         }
       }
     }
+    
+    //Time to next event
+    if (currentLevel.addRandomLines | currentLevel.addRandomBlocks){
+      fill(120);
+      textSize(15);
+      text("next event", blocksize * (nx + 2), blocksize * 19); 
+      fill(200);
+      textSize(20);
+      int sec = round((eventTimer.duration - eventTimer.getTime()) / 1000);
+      text(str(sec), blocksize * (nx + 2), blocksize * 20);
+    }
   }
   
   //atualiza
@@ -141,11 +162,29 @@ class TetrisGame{
     // se o jogo avança um passo
     if(timer.updateStep()){
       // testamos se a peça vai colidir
-      boolean test = currentShape.collision(grid, nx, ny, 0, 0);
+      boolean test = currentShape.collision(0, 0);
       if (!test) {
         //peça cai um bloco
         currentShape.y += 1;
       } else {
+        //a peça cai na superfície
+        splatShape();
+        //precisamos gerar nova peça
+        spawn = true;
+      }
+    }
+    
+    //realiza eventos
+    if(eventTimer.updateStep()){
+      if(currentLevel.addRandomLines){
+        addLine(); //<>//
+      }
+      if(currentLevel.addRandomBlocks){
+        addBlock();
+      }
+      // testamos se a peça vai colidir
+      boolean test = currentShape.collision(0, 0);
+      if (test) {
         //a peça cai na superfície
         splatShape();
         //precisamos gerar nova peça
@@ -167,6 +206,7 @@ class TetrisGame{
         } else {
           // adicionamos a peça ao grid
           if (currentShape.geom[j][i] > 0) grid[I][J] = currentShapeID * currentShape.geom[j][i];
+          checkRows();
         }
       }
     }
@@ -180,7 +220,7 @@ class TetrisGame{
     fill(250);
     stroke(0);
     textSize(40);
-    text("Game Over", blocksize * 6, blocksize * 10);  //<>//
+    text("Game Over", blocksize * 6, blocksize * 10); 
     textSize(25);
     text("Press R to restart", blocksize * 6, blocksize * 12); 
   }
@@ -255,16 +295,50 @@ class TetrisGame{
     if (count > 0){
       score += count * count;
       clearedLines += count;
+      eventTimer.setTime();
     }
     // se atingiu o objetivo, avança para o próximo
-    if (clearedLines >= levels[level].goalLines){
+    if (clearedLines >= currentLevel.goalLines){
       nextLevel = true;
       getBonus();
     }
   }
-
-
+  
+  //adiciona linha
+  void addLine(){
+    int[][] newgrid = randomGrid(nx, ny, 1);
+    for (int J=ny-2; J>=0; J--){
+      for (int I=0; I<nx; I++){
+        newgrid[I][J] = grid[I][J+1];
+      }
+    }
+    grid = newgrid;
+    //checa se o jogo acabou:
+    boolean test = false;
+    for (int I=0; I<nx; I++){
+      if (grid[I][0] > 0) test = true;
+    }
+    if (test) endGame();
+    eventTimer.setTime();
+  }
+  
+  //adiciona linha
+  void addBlock(){
+    int X = 0;
+    int Y = 0;
+    int I = floor(random(nx));
+    for (int J=0; J<ny; J++){
+      if (grid[I][J] > 0) {
+        Y = J - 1;
+        X = I;
+        break;
+      }
+    }
+    grid[X][Y] = 8;
+    println("!!!");
+  }
 }
+
 
 //desenha um bloco
 //fiz função a parte porque queria fazer algo mais bonitinho depois

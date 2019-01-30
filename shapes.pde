@@ -81,13 +81,13 @@ class TetrisShape {
   }
   
   //colisão com coisas no grid
-  boolean collision(int[][] grid, int nx, int ny, int dx, int dy) {
+  boolean collision(int dx, int dy) {
     boolean test = false;
     for (int i=0; i<dim; i++){
       for (int j=0; j<dim; j++){
         int px = x + i + dx;
         int py = y + j - 1 + dy;
-        int val_grid  = getGridVal(grid, px, py, nx, ny);
+        int val_grid  = getGridVal(px, py);
         int val_shape = geom[j][i];
         if(val_grid * val_shape != 0){
           test = true;
@@ -105,20 +105,64 @@ class TetrisShape {
         newgeom[i][j] = geom[dim - j - 1][i];
       }
     }
-    geom = copy(newgeom);
+    //check for collision
+    boolean test = false;
+    for (int i=0; i<dim; i++){
+      for (int j=0; j<dim; j++){
+        int px = x + i;
+        int py = y + j - 1;
+        int val_grid  = getGridVal(px, py);
+        int val_shape = newgeom[j][i];
+        if(val_grid * val_shape != 0){
+          test = true;
+        }
+      }
+    }
+    
+    if (!test) arrayCopy(newgeom, geom);
+    
+    if( x < 0 ){ // colisões com a parede esquerda durante a rotação
+      arrayCopy(newgeom, geom);
+      boolean hit = false;;
+      for(int i=0; i<geom.length; i++){
+        if( geom[i][0] == 1 ){
+          hit = true;
+          break;
+        }
+      }
+      if( hit ){
+        this.moveX( -x );
+      }
+    }
+    
+    if( x >= tetris.nx - 3 ){ //colisões com a parede direita durante a rotação
+      arrayCopy(newgeom, geom);
+      boolean hit = false;
+      for( int j = 3; j >= 2; --j ){
+        for(int i=0; i<geom.length; i++){
+          if( geom[i][j] == 1 ){
+            hit = true;
+            break;
+          }
+        }
+        if( hit ){
+          this.moveX( (tetris.nx-j-1)-x );
+        }
+      }
+    }
   }
   
   //move horizontalmente
   //PS: tem um negócio estranho rolando, mas estou com preçuiça de arrumar, por isso o -1
   void moveX(int dx) {
-    boolean test = collision(tetris.grid, tetris.nx, tetris.ny, dx, -1);
+    boolean test = collision(dx, -1);
     if (!test) {
       x += dx;
     }
   }
   //move verticalmente
   void moveY(int dy) {
-    boolean test = collision(tetris.grid, tetris.nx, tetris.ny, 0, dy);
+    boolean test = collision(0, dy);
     if (!test) {
       y += dy;
     }
@@ -126,18 +170,18 @@ class TetrisShape {
 }
 
 //pega valores do grid
-int getGridVal(int[][] grid, int i, int j, int nx, int ny) {
+int getGridVal(int i, int j) {
   int val = 0;
-  if (i < 0 | i >= nx) {
+  if (i < 0 | i >= tetris.nx) {
     val = 1;
   } else {
     if (j < 0) {
       val = 0;
     } else {
-      if (j >= ny) {
+      if (j >= tetris.ny) {
         val = 1;
       } else {
-        val = grid[i][j];
+        val = tetris.grid[i][j];
       }
     }
   }
